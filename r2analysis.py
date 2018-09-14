@@ -1,5 +1,5 @@
 import pandas as pd
-r2 = pd.read_csv('data/Kaggle_sp500/r2.csv')
+r2 = pd.read_csv('data/kaggle/r2.csv')
 r2['date'] =  pd.to_datetime(r2['date'])
 r2.set_index(['Name','date'],inplace=True, verify_integrity=True,drop=False)
 offset_pre = -10
@@ -22,7 +22,7 @@ def calc_returns(df):
                 df['r' + suffix] = (df['close' + suffix] - df['close']) / df['close']
 
 enriched = {}
-groups = r2.groupby('Name')
+groups = r2.groupby('Name', as_index=True)
 for name,group in groups:
     print('Enriching ', name )
     enriched[name] = enrich_security(group)
@@ -31,6 +31,6 @@ r2 = pd.concat(enriched.values())
 calc_returns(r2)
 ##pd.to_pickle(r2enriched,'./data/r2enricked.pkl')
 r2['dvolume']=r2['volume']*r2['close']
-mvolume = r2.groupby('date',as_index=False).dvolume.sum()
+mvolume = r2.groupby('date',as_index=True).dvolume.sum()
 mvolume = mvolume.rename(index=str, columns={"dvolume": "mvolume"})
 r2=pd.merge(r2,mvolume,on='date',how='outer')
