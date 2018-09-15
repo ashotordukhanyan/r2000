@@ -1,4 +1,10 @@
 import pandas as pd
+
+
+def label(prefix, offset):
+    return '%s_T%s%d' % (prefix, "plus" if offset > 0 else 'minus', abs(offset))
+
+
 def get_dataset():
     r2 = pd.read_csv('data/kaggle/r2.csv')
     r2['date'] =  pd.to_datetime(r2['date'])
@@ -9,20 +15,17 @@ def get_dataset():
     offset_pre = -5
     offset_post = 5
 
-    def label(prefix,offset):
-        return '%s_T%s%d' % (prefix,"plus" if offset > 0 else 'minus', abs(offset))
-
     def enrich_security(df):
         df2 = df.copy()
         df2['ADV']= df2['dvolume'].rolling(21).median()
         df2['EDV'] = df2['dvolume']/df2['ADV']
-        for offset in range(offset_pre, -1):
+        for offset in range(offset_pre, 0):
             df2[label('EDV', offset)] = df2['EDV'].shift(offset)
 
         df2['ADVOL'] = df2['dvol'].rolling(21).median()
         df2['EDVOL'] = df2['dvol'] / df2['ADVOL']
 
-        for offset in range(offset_pre, -1):
+        for offset in range(offset_pre, 0):
             df2[label('EDVOL', offset)] = df2['EDVOL'].shift(offset)
 
         for offset in range(offset_pre,offset_post) :
@@ -53,7 +56,7 @@ def get_dataset():
     mvolume = mvolume.rename(index=str, columns={"dvolume": "mkt_volume"})
     mvolume['AMV']= mvolume['mkt_volume'].rolling(21).median()
     mvolume['EMV']= mvolume['mkt_volume']/mvolume['AMV'] ##Market excess volume
-    for offset in range(offset_pre,-1):
+    for offset in range(offset_pre,0):
         mvolume[label('EMV',offset)] = mvolume['EMV'].shift(offset)
 
     r2=pd.merge(r2,mvolume,on='date',how='outer')
@@ -66,3 +69,6 @@ if __name__ == '__main__':
     if r2 is  None or len(r2)==0:
         r2 = get_dataset()
         pd.to_pickle(r2,'./data/r2.pkl')
+    features = []
+    for t in [ 'r', 'EMV', 'EDV', 'EDVOL' ]:
+        features += [label(t, offset) for offset in range(-5, 0)]
