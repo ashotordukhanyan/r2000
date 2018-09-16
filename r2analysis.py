@@ -1,4 +1,5 @@
 from datetime import datetime
+from scipy.stats.stats import pearsonr
 
 import pandas as pd
 from sklearn import datasets
@@ -67,6 +68,17 @@ def get_dataset():
     r2=pd.merge(r2,mvolume,on='date',how='outer')
     return r2
 
+def run_regression(year,data,features):
+    print("Runing for year ", year)
+    df = data[(data['date'] >= datetime(year, 1, 1)) & (data['date'] < datetime(year+1, 1, 1)) ]
+    train_x, test_x,train_y,test_y = train_test_split(df[features], df['r_Tplus1'], test_size=0.4, random_state=42)
+    rf = RandomForestRegressor(random_state=42, verbose=100, n_estimators=50, n_jobs=10)
+    print("Fitting a dataset containing %d observations and %d features"%(len(train_x), len(train_x.columns)))
+    rf.fit(train_x,train_y)
+    print("Done fitting")
+    predict_y = rf.predict(test_x)
+    return pearsonr(test_y,predict_y)
+
 if __name__ == '__main__':
     try:
         r2 = pd.read_pickle('./data/r2.pkl')
@@ -77,13 +89,14 @@ if __name__ == '__main__':
 
     r2.replace([np.inf, -np.inf], np.nan, inplace = True)
     r2.dropna( inplace = True)
-    df = r2[r2['date'] < datetime(2016, 1, 1)]
     features = []
-    for t in [ 'r', 'EMV', 'EDV', 'EDVOL' ]:
+
+    for t in ['r', 'EMV', 'EDV', 'EDVOL']:
         features += [label(t, offset) for offset in range(-5, 0)]
 
-    train_x, test_x,train_y,test_y = train_test_split(df[features], df['r_Tplus1'], test_size=0.4, random_state=42)
-    rf = RandomForestRegressor(random_state=42, verbose=100, n_estimators=50, n_jobs=10)
-    print("Fitting a dataset containing %d observations and %d features"%(len(train_x), len(train_x.columns)))
-    rf.fit(train_x,train_y)
-    print("Done fitting")
+    stats = {}
+    for d in range(2014,2019):
+       stats[d] = run_regression(d,r2, features)
+
+    for year,stat in stats:
+        print('%s  - %s' % (year,stat))
