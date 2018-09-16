@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import pandas as pd
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
@@ -73,12 +75,15 @@ if __name__ == '__main__':
         r2 = get_dataset()
         pd.to_pickle(r2,'./data/r2.pkl')
 
-    r2.replace([np.inf, -np.inf], np.nan)
+    r2.replace([np.inf, -np.inf], np.nan, inplace = True)
     r2.dropna( inplace = True)
+    df = r2[r2['date'] < datetime(2016, 1, 1)]
     features = []
     for t in [ 'r', 'EMV', 'EDV', 'EDVOL' ]:
         features += [label(t, offset) for offset in range(-5, 0)]
 
-    train_x, test_x,train_y,test_y = train_test_split(r2[features], r2['r_Tplus1'], test_size=0.4, random_state=42)
-    rf = RandomForestRegressor(random_state=42)
+    train_x, test_x,train_y,test_y = train_test_split(df[features], df['r_Tplus1'], test_size=0.4, random_state=42)
+    rf = RandomForestRegressor(random_state=42, verbose=100, n_estimators=50, n_jobs=10)
+    print("Fitting a dataset containing %d observations and %d features"%(len(train_x), len(train_x.columns)))
     rf.fit(train_x,train_y)
+    print("Done fitting")
