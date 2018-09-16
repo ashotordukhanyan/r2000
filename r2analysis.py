@@ -1,5 +1,8 @@
 import pandas as pd
-
+from sklearn import datasets
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+import numpy as np
 
 def label(prefix, offset):
     return '%s_T%s%d' % (prefix, "plus" if offset > 0 else 'minus', abs(offset))
@@ -69,6 +72,13 @@ if __name__ == '__main__':
     if r2 is  None or len(r2)==0:
         r2 = get_dataset()
         pd.to_pickle(r2,'./data/r2.pkl')
+
+    r2.replace([np.inf, -np.inf], np.nan)
+    r2.dropna( inplace = True)
     features = []
     for t in [ 'r', 'EMV', 'EDV', 'EDVOL' ]:
         features += [label(t, offset) for offset in range(-5, 0)]
+
+    train_x, test_x,train_y,test_y = train_test_split(r2[features], r2['r_Tplus1'], test_size=0.4, random_state=42)
+    rf = RandomForestRegressor(random_state=42)
+    rf.fit(train_x,train_y)
