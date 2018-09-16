@@ -77,7 +77,10 @@ def run_regression(year,data,features):
     rf.fit(train_x,train_y)
     print("Done fitting")
     predict_y = rf.predict(test_x)
-    return pearsonr(test_y,predict_y)
+    result = {}
+    result['importance'] = dict(zip(features,rf.feature_importances_))
+    result['corr'] = pearsonr(test_y,predict_y)
+    return result
 
 if __name__ == '__main__':
     try:
@@ -98,5 +101,12 @@ if __name__ == '__main__':
     for d in range(2014,2019):
        stats[d] = run_regression(d,r2, features)
 
-    for year,stat in stats:
-        print('%s  - %s' % (year,stat))
+    results = pd.DataFrame(columns=['year','correlation'] + features )
+    years = list(stats.keys())
+    results['year'] = years
+    results['correlation'] = [ stats[y]['corr'] for y in years ]
+    for f in features:
+        results['correlation'] = [stats[y]['corr'] for y in years]
+        results[f] = [ stats[y]['importance'][f] for y in years]
+    print(results)
+    pd.to_pickle(results, './data/results.pkl')
